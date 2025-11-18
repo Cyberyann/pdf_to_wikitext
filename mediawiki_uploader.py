@@ -1,35 +1,31 @@
 #!/usr/bin/env python3
 """
-Script pour transférer des images vers MediaWiki
-Utilise l'API MediaWiki pour uploader des fichiers
+Script to transfer image to MediaWiki
+It use MediaWiki API  to upload file
 """
-
-import requests
 from pathlib import Path
+from logger import log
 import mimetypes
+import os
+import requests
 
 
 class MediaWikiUploader:
-    def __init__(self, api_url, username, password):
+    def __init__(self):
         """
-        Initialise l'uploader MediaWiki
-
-        Args:
-            api_url: URL de l'API MediaWiki (ex: https://wiki.example.com/api.php)
-            username: Nom d'utilisateur
-            password: Mot de passe
+        Initialize MediaWiki uploader
         """
-        self.api_url = api_url
-        self.username = username
-        self.password = password
+        self.api_url = os.getenv("MEDIAWIKI_URL") or "http://wiki.example.com/api.php"
+        self.username = os.getenv("MEDIAWIKI_USER") or "adminUser"
+        self.password = os.getenv("MEDIAWIKI_MDP") or "adminPwd"
         self.session = requests.Session()
         self.csrf_token = None
+        self.login_error = None
 
     def login(self):
-        """Se connecte à MediaWiki"""
-        print(f"Connexion en tant que {self.username}...")
+        log(f"Connection as {self.username}...")
 
-        # Obtenir le token de connexion
+        # Get connection token
         params = {
             "action": "query",
             "meta": "tokens",
@@ -37,11 +33,17 @@ class MediaWikiUploader:
             "format": "json",
         }
 
-        response = self.session.get(self.api_url, params=params)
+        try:
+            response = self.session.get(self.api_url, params=params)
+        except:
+            log(f"Wikimedia server {self.api_url} not found")
+            self.login_error = True
+            return False
+
         data = response.json()
         login_token = data["query"]["tokens"]["logintoken"]
 
-        # Se connecter
+        # Connection
         login_data = {
             "action": "login",
             "lgname": self.username,
@@ -54,14 +56,15 @@ class MediaWikiUploader:
         result = response.json()
 
         if result["login"]["result"] == "Success":
-            print("✓ Connexion réussie")
+            log("Connection done")
             return True
         else:
-            print(f"✗ Échec de connexion: {result['login']['result']}")
+            log(f"Connection error: {result['login']['result']}")
+            self.login_error = True
             return False
 
     def get_csrf_token(self):
-        """Obtient le token CSRF nécessaire pour l'upload"""
+        """Get CSRF token nedeed to upload"""
         params = {"action": "query", "meta": "tokens", "format": "json"}
 
         response = self.session.get(self.api_url, params=params)
@@ -71,29 +74,35 @@ class MediaWikiUploader:
 
     def upload_image(self, file_path, description="", overwrite=False):
         """
-        Upload une image vers MediaWiki
+        Upload image to MediaWiki
 
         Args:
-            file_path: Chemin vers le fichier image
-            description: Description du fichier (optionnel)
-            overwrite: Remplacer le fichier s'il existe déjà
+            file_path: image file path
+            description: File description (option)
+            overwrite: Replace file if exist
 
         Returns:
-            True si succès, False sinon
+            True if success, False if not
         """
+        if self.login_error:
+            return False
+
         file_path = Path(file_path)
 
         if not file_path.exists():
-            print(f"✗ Fichier non trouvé: {file_path}")
+            log(f"File not found: {file_path}")
             return False
 
-        # Obtenir le token CSRF si nécessaire
+        # Get token if not already done
         if not self.csrf_token:
             self.get_csrf_token()
 
-        print(f"Upload de {file_path.name}...")
+        if not self.csrf_token:
+            log("No link to wikimedia. Image files will not be upload ")
+            return
 
-        # Préparer les données
+        log(f"Upload of {file_path.name}...")
+
         mime_type = mimetypes.guess_type(str(file_path))[0]
         upload_data = {
             "action": "upload",
@@ -106,102 +115,26 @@ class MediaWikiUploader:
         if overwrite:
             upload_data["ignorewarnings"] = "1"
 
-        # Upload le fichier
+        # Upload file
         with open(file_path, "rb") as f:
             files = {"file": (file_path.name, f, mime_type)}
-            response = self.session.post(self.api_url, data=upload_data, files=files)
+            response = self.session.post(self.api_url, data=upload_data, files=files)  # type: ignore
 
         try:
             result = response.json()
 
             if "upload" in result and result["upload"]["result"] == "Success":
-                print(f"✓ {file_path.name} uploadé avec succès")
+                log(f"{file_path.name} uploaded with success")
                 return True
             elif "error" in result:
-                print(f"✗ Erreur: {result['error']['info']}")
+                log(f"Error: {result['error']['info']}")
                 return False
             elif "warnings" in result.get("upload", {}):
                 warnings = result["upload"]["warnings"]
-                print(f"⚠ Avertissements: {warnings}")
+                log(f"Warning: {warnings}")
                 return False
             else:
-                print(f"✗ Échec de l'upload: {result}")
+                log(f"Upload failed: {result}")
                 return False
         except ValueError:
-            print("Not a valid json response")
-
-    def upload_directory(
-        self, directory_path, description="", overwrite=False, extensions=None
-    ):
-        """
-        Upload toutes les images d'un répertoire
-
-        Args:
-            directory_path: Chemin vers le répertoire
-            description: Description par défaut pour tous les fichiers
-            overwrite: Remplacer les fichiers existants
-            extensions: Liste des extensions à uploader (ex: ['.jpg', '.png'])
-                       Si None, upload toutes les images communes
-        """
-        if extensions is None:
-            extensions = [".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp"]
-
-        directory = Path(directory_path)
-
-        if not directory.is_dir():
-            print(f"✗ Répertoire non trouvé: {directory}")
-            return
-
-        # Trouver toutes les images
-        image_files = []
-        for ext in extensions:
-            image_files.extend(directory.glob(f"*{ext}"))
-            image_files.extend(directory.glob(f"*{ext.upper()}"))
-
-        if not image_files:
-            print(f"Aucune image trouvée dans {directory}")
-            return
-
-        print(f"\nTrouvé {len(image_files)} image(s) à uploader")
-
-        success_count = 0
-        for img_file in image_files:
-            if self.upload_image(img_file, description, overwrite):
-                success_count += 1
-
-        print(f"\n✓ {success_count}/{len(image_files)} images uploadées avec succès")
-
-
-# def main():
-#     """Fonction principale - exemple d'utilisation"""
-#     print("=== Upload d'images vers MediaWiki ===\n")
-
-#     # Configuration - à personnaliser
-#     api_url = input("URL de l'API MediaWiki (ex: https://wiki.example.com/api.php): ")
-#     username = input("Nom d'utilisateur: ")
-#     password = getpass.getpass("Mot de passe: ")
-
-#     # Créer l'uploader et se connecter
-#     uploader = MediaWikiUploader(api_url, username, password)
-
-#     if not uploader.login():
-#         print("Impossible de se connecter")
-#         return
-
-#     # Menu de choix
-#     print("\nQue voulez-vous faire ?")
-#     print("1. Uploader un fichier unique")
-#     print("2. Uploader tous les fichiers d'un répertoire")
-#     choice = input("Choix (1 ou 2): ")
-
-#     if choice == "1":
-#         file_path = input("Chemin du fichier: ")
-#         description = input("Description (optionnel): ")
-#         overwrite = input("Écraser si existe déjà ? (o/n): ").lower() == 'o'
-#         uploader.upload_image(file_path, description, overwrite)
-
-#     elif choice == "2":
-#         directory = input("Chemin du répertoire: ")
-#         description = input("Description pour tous les fichiers (optionnel): ")
-#         overwrite = input("Écraser les fichiers existants ? (o/n): ").lower() == 'o'
-#         uploader.upload_directory(directory, description, overwrite)
+            log("Not a valid json response")

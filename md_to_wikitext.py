@@ -1,33 +1,34 @@
 import re
 import os
+from logger import log
 from mediawiki_uploader import MediaWikiUploader
 from pathlib import Path
 
 
 def convert_table_to_wikitable(table_text: str) -> str:
     """
-    Convertit un tableau Markdown en format wikitable.
+    Convert a Markdown table to a wikitable.
     """
     lines = table_text.strip().split("\n")
     if len(lines) < 2:
         return table_text
 
-    # Extraire l'en-tête
+    # header extraction
     header = lines[0]
-    # Ignorer la ligne de séparation (|---|---|)
-    # Les données commencent à partir de la ligne 2
+    # Ignore separate line  (|---|---|)
+    # Datas start at line 2
     data_lines = lines[2:] if len(lines) > 2 else []
 
-    # Parser l'en-tête
+    # Parse header
     header_cells = [cell.strip() for cell in header.split("|") if cell.strip()]
 
-    # Construire le wikitable
+    # Construct wikitable
     result = ['{| class="wikitable"']
 
-    # Ajouter l'en-tête
+    # Add header
     result.append("! " + " !! ".join(header_cells))
 
-    # Ajouter les lignes de données
+    # Add lines
     for line in data_lines:
         cells = [cell.strip() for cell in line.split("|") if cell.strip()]
         if cells:
@@ -50,9 +51,9 @@ def md_to_wikitext(
     Transform Markdown content to wikitext.
     """
 
-    uploader = MediaWikiUploader("http://localhost/api.php", "adminUser", "mdpAdmin12")
+    uploader = MediaWikiUploader()
     if not uploader.login():
-        return "Cant connect to mediawiki"
+        log("Cant connect to mediawiki")
 
     # First manage table
     table_pattern = r"(\|.+\|\n\|[-:\s|]+\|\n(?:\|.+\|\n?)*)"
@@ -120,11 +121,17 @@ def md_to_wikitext(
 
     result = "\n".join(transformed_lines)
 
+    # Remove empty lines
     result = re.sub(r"([a-zA-Z])\n{5}([a-zA-Z])", r"\1 \2", result)
+    result = re.sub(r"([a-zA-Z])\n{4}([a-zA-Z])", r"\1 \2", result)
     result = re.sub(r"([a-zA-Z])\n{3}([a-zA-Z])", r"\1 \2", result)
     result = re.sub(r"([a-zA-Z])\n{2}([a-zA-Z])", r"\1 \2", result)
     result = re.sub(r"(.)\n{3}([a-zA-Z])", r"\1\n\n\2", result)
     result = re.sub(r"(,)\n{2}([a-zA-Z])", r"\1 \2", result)
     result = re.sub(r"\n{3}(==)", r"\n\1", result)
+    result = re.sub(r"\n{5}", r"\n\n", result)
+    result = re.sub(r"\n{4}", r"\n\n", result)
+    result = re.sub(r"\n{3}", r"\n\n", result)
+    result = re.sub(r"\n{2}", r"\n\n", result)
 
     return result
