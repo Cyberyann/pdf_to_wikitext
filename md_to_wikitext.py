@@ -1,7 +1,6 @@
 import re
-import os
 from logger import log
-from mediawiki_uploader import MediaWikiUploader
+from mediawiki_api import MediaWikiApi
 from pathlib import Path
 
 
@@ -44,14 +43,14 @@ def md_to_wikitext(
     content: str,
     footer: str,
     ignore_pages: str,
-    article_name: str,
+    page_name: str,
     image_path: str,
 ) -> str:
     """
     Transform Markdown content to wikitext.
     """
 
-    uploader = MediaWikiUploader()
+    uploader = MediaWikiApi()
     if not uploader.login():
         log("Cant connect to mediawiki")
 
@@ -106,9 +105,7 @@ def md_to_wikitext(
         match = re.search(r"!\[\]\((.*?)\)", line)
         if match:
             image_source = match.group(1)
-            dest_name = (
-                article_name.lower().replace(" ", "_") + "_" + str(image_index) + ".png"
-            )
+            dest_name = f"{page_name} {str(image_index)}.png"
             image_dest = image_path + dest_name
 
             Path(image_source).rename(image_dest)
@@ -133,5 +130,7 @@ def md_to_wikitext(
     result = re.sub(r"\n{4}", r"\n\n", result)
     result = re.sub(r"\n{3}", r"\n\n", result)
     result = re.sub(r"\n{2}", r"\n\n", result)
+
+    result = result.strip()
 
     return result

@@ -10,10 +10,10 @@ import os
 import requests
 
 
-class MediaWikiUploader:
+class MediaWikiApi:
     def __init__(self):
         """
-        Initialize MediaWiki uploader
+        Initialize MediaWiki API
         """
         self.api_url = os.getenv("MEDIAWIKI_URL") or "http://wiki.example.com/api.php"
         self.username = os.getenv("MEDIAWIKI_USER") or "adminUser"
@@ -36,7 +36,7 @@ class MediaWikiUploader:
         try:
             response = self.session.get(self.api_url, params=params)
         except:
-            log(f"Wikimedia server {self.api_url} not found")
+            log(f"Mediawiki server {self.api_url} not found")
             self.login_error = True
             return False
 
@@ -98,7 +98,7 @@ class MediaWikiUploader:
             self.get_csrf_token()
 
         if not self.csrf_token:
-            log("No link to wikimedia. Image files will not be upload ")
+            log("No link to Mediawiki. Image files will not be upload ")
             return
 
         log(f"Upload of {file_path.name}...")
@@ -138,3 +138,35 @@ class MediaWikiUploader:
                 return False
         except ValueError:
             log("Not a valid json response")
+
+    def create_page(self, page_name: str, content: str):
+        if not self.csrf_token:
+            self.get_csrf_token()
+
+        params = {
+            "action": "edit",
+            "title": page_name,
+            "text": content,
+            "summary": "Create or update page",
+            "token": self.csrf_token,
+            "format": "json",
+        }
+
+        response = self.session.post(self.api_url, data=params)
+        data = response.json()
+
+        if "edit" in data and data["edit"]["result"] == "Success":
+            log(f"Page '{page_name}' created/modified successfully")
+            if "new" in data["edit"]:
+                log("New page created")
+            else:
+                log("Page updated")
+            mediawiki_url = (
+                os.getenv("MEDIAWIKI_URL") or "http://wiki.example.com/api.php"
+            )
+            return mediawiki_url.replace(
+                "api.php", f"index.php?title={data["edit"]["title"]}"
+            )
+        else:
+            print(f"Page creation fail: {data}")
+            return "Page not created"
