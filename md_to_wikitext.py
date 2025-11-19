@@ -109,7 +109,7 @@ def md_to_wikitext(
             image_dest = image_path + dest_name
 
             Path(image_source).rename(image_dest)
-            uploader.upload_image(image_dest, "", True)
+            uploader.upload_image(image_dest, "")
 
             image_index += 1
             line = f"[[File:{dest_name}|center|thumb]]"

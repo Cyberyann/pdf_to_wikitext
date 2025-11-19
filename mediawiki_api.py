@@ -72,7 +72,7 @@ class MediaWikiApi:
         self.csrf_token = data["query"]["tokens"]["csrftoken"]
         return self.csrf_token
 
-    def upload_image(self, file_path, description="", overwrite=False):
+    def upload_image(self, file_path, description=""):
         """
         Upload image to MediaWiki
 
@@ -110,10 +110,8 @@ class MediaWikiApi:
             "text": description,
             "token": self.csrf_token,
             "format": "json",
+            "ignorewarnings": "1",
         }
-
-        if overwrite:
-            upload_data["ignorewarnings"] = "1"
 
         # Upload file
         with open(file_path, "rb") as f:
@@ -168,5 +166,5 @@ class MediaWikiApi:
                 "api.php", f"index.php?title={data["edit"]["title"]}"
             )
         else:
-            print(f"Page creation fail: {data}")
+            log(f"Page creation fail: {data}")
             return "Page not created"

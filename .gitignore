@@ -6,4 +6,7 @@ sources
 .env
 output/*
 !output/.gitkeep
-tests/*
+/tests/output/*
+!/tests/output/.gitkeep
+/tests/images/*
+!/tests/images/.gitkeep

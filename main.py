@@ -61,7 +61,7 @@ async def extract_text_from_pdf(
         os.unlink(txt_output_filename)
     if os.path.exists(md_output_filename):
         os.unlink(md_output_filename)
-    image_path = f"./images/{file.filename[:-4]}/"  # type: ignore
+    image_path = f"{os.getenv("IMAGES_FOLDER")}/{file.filename[:-4]}/"  # type: ignore
 
     log_step("Create temporary file")
     temp_file = Path(f"{os.getenv("OUTPUT_FOLDER")}/{page_name_final}.pdf")
