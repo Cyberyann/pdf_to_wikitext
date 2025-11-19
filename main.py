@@ -5,7 +5,7 @@ from mediawiki_api import MediaWikiApi
 from logger import init_logger, log, log_step
 from pathlib import Path
 import pymupdf4llm
-import tempfile
+import fitz
 import os
 import shutil
 
@@ -70,9 +70,9 @@ async def extract_text_from_pdf(
 
     log_step("Transform Pdf content to md text and store image")
     try:
-        md_text = pymupdf4llm.to_markdown(
-            temp_file, write_images=True, image_path=image_path
-        )
+        doc = fitz.open(temp_file)
+        md_text = pymupdf4llm.to_markdown(doc, write_images=True, image_path=image_path)
+        doc.close()
     except Exception as e:
         log(f"Error in PDF to MD transformation: {str(e)}")
         return
@@ -113,7 +113,7 @@ async def extract_text_from_pdf(
             log(f"Page generation result: {return_page_url}")
 
 
-@app.post("/get_wikitext_file/")
+@app.post("/get-wikitext-file/")
 async def get_wikitext_file(
     page_name: str = Form(...),
 ):
@@ -143,7 +143,7 @@ async def get_wikitext_file(
     return content
 
 
-@app.post("/get_last_log/")
+@app.post("/get-last-log/")
 async def get_last_log(
     page_name: str = Form(...),
 ):
@@ -169,7 +169,7 @@ async def get_last_log(
     pattern = f"{page_name_final}*.log"
     log_files = list(dir_path.glob(pattern))
     if not log_files:
-        return "Log not found"
+        raise HTTPException(status_code=404, detail=f"Log file not found")
 
     latest_file = max(log_files, key=lambda f: f.stat().st_mtime)
 
@@ -178,7 +178,7 @@ async def get_last_log(
     return content
 
 
-@app.post("/create_mediawiki_page/")
+@app.post("/create-mediawiki-page/")
 async def create_mediawiki_page(
     file: UploadFile = File(...),
     page_name: str = Form(...),
