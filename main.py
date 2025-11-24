@@ -1,8 +1,8 @@
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
-from md_to_wikitext import md_to_wikitext
-from mediawiki_api import MediaWikiApi
-from logger import init_logger, log, log_step
+from libs.md_to_wikitext import md_to_wikitext
+from libs.mediawiki_api import MediaWikiApi
+from libs.logger import init_logger, log, log_step
 from pathlib import Path
 import pymupdf4llm
 import fitz

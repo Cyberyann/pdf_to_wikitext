@@ -1,6 +1,6 @@
 import re
-from logger import log
-from mediawiki_api import MediaWikiApi
+from libs.logger import log
+from libs.mediawiki_api import MediaWikiApi
 from pathlib import Path
 
 

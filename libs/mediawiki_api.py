@@ -4,7 +4,7 @@ Script to transfer image to MediaWiki
 It use MediaWiki API  to upload file
 """
 from pathlib import Path
-from logger import log
+from libs.logger import log
 import mimetypes
 import os
 import requests
