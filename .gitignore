@@ -1,11 +1,9 @@
 __pycache__
 .venv
-images/*
-!images/.gitkeep
+images
 sources
 .env
-output/*
-!output/.gitkeep
+output
 /tests/output/*
 !/tests/output/.gitkeep
 /tests/images/*
