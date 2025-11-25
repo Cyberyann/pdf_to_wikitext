@@ -71,7 +71,12 @@ async def extract_text_from_pdf(
     log_step("Transform Pdf content to md text and store image")
     try:
         doc = fitz.open(temp_file)
-        md_text = pymupdf4llm.to_markdown(doc, write_images=True, image_path=image_path)
+        md_text = pymupdf4llm.to_markdown(
+            doc,
+            write_images=True,
+            image_path=image_path,
+            page_separators=True,
+        )
         doc.close()
     except Exception as e:
         log(f"Error in PDF to MD transformation: {str(e)}")
@@ -94,7 +99,7 @@ async def extract_text_from_pdf(
         return
 
     log_step("Remove image folder")
-    shutil.rmtree(image_path)
+    # shutil.rmtree(image_path)
 
     log_step("Create wikitext file")
     with open(txt_output_filename, "w", encoding="utf-8") as fichier:

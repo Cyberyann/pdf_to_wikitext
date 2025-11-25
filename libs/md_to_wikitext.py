@@ -65,15 +65,18 @@ def md_to_wikitext(
     lines = content.split("\n")
     transformed_lines = []
     ignore_page_list = ignore_pages.split(",")
-
     image_index = 0
     page_number = 0
     for line in lines:
         # Remove strat whitespace
         line = line.lstrip()
+        line = line.replace("\u2013", "-")
 
         footer_escaped = re.escape(footer)
-        if re.search(f"{footer_escaped} \\*\\*\\d+\\*\\*", line):
+        if re.search(f"{footer_escaped} \\*\\*(.+?)\\*\\*", line):
+            continue
+
+        if re.search(f"^--- end of page=\\d+ ---$", line):
             page_number += 1
             continue
 
@@ -81,7 +84,7 @@ def md_to_wikitext(
             continue
 
         # Rule 1: _Text_ -> ''Text''
-        line = re.sub(r"_Table (\d+)\.([^_]+)_", r"''Table \1.\2''", line)
+        line = re.sub(r"^_(.+?)_$", r"''\1''", line)
 
         # Rule 2: - Item -> * Item
         if line.startswith("- "):
@@ -130,6 +133,7 @@ def md_to_wikitext(
     result = re.sub(r"\n{4}", r"\n\n", result)
     result = re.sub(r"\n{3}", r"\n\n", result)
     result = re.sub(r"\n{2}", r"\n\n", result)
+    result = re.sub(r"''\n{2}''", r"", result)
 
     result = result.strip()
 
