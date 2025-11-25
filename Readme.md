@@ -7,6 +7,13 @@ Application create a wikitext page on a Mediawiki, in output folder got a log an
 **Installation of libraries**  
 `pip install -r requirements.txt`   
 
+**Create work folder**  
+Project need 2 folder to work. They are defined in the .env file  
+- images
+- output  
+
+You can create like this in the project folder (they are in the .gitignore) or use others folders  
+
 **Create .env file**  
 Create a .env file from .env.example file and fill it with your values  
 

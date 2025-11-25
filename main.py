@@ -3,6 +3,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from libs.md_to_wikitext import md_to_wikitext
 from libs.mediawiki_api import MediaWikiApi
 from libs.logger import init_logger, log, log_step
+from libs.annotate import Annotate
 from pathlib import Path
 import pymupdf4llm
 import fitz
@@ -99,14 +100,15 @@ async def extract_text_from_pdf(
         return
 
     log_step("Remove image folder")
-    # shutil.rmtree(image_path)
+    shutil.rmtree(image_path)
 
     log_step("Create wikitext file")
     with open(txt_output_filename, "w", encoding="utf-8") as fichier:
         fichier.write(wikitext)
 
     log_step("Annotate wikitext with ontology")
-    # TODO
+    annotation = Annotate()
+    annotation.annotate_section(wikitext)
 
     if generate_page == "true":
         log_step("Create Mediawiki page")

@@ -5,6 +5,7 @@ import logging
 import os
 import pytest
 import requests_mock
+import shutil
 
 load_dotenv("tests/.env.test")
 
@@ -33,6 +34,14 @@ def remove_output_files():
         for file in files:
             if file.name != ".gitkeep":
                 file.unlink()
+    image_path = Path(__file__).parent / f"{os.getenv("IMAGES_FOLDER")}"
+    directories = [
+        d for d in image_path.iterdir() if d.is_dir() and d.name != ".gitkeep"
+    ]
+
+    if directories:
+        for directory in directories:
+            shutil.rmtree(directory)
 
 
 @pytest.fixture(autouse=True)
@@ -50,7 +59,7 @@ def setup_teardown():
             handler.close()
             logger.removeHandler(handler)
 
-    # remove_output_files()
+    remove_output_files()
 
 
 def test_pdf_to_wikitext_workflow_success(client, pdf_test_file_path):

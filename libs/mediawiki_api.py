@@ -15,7 +15,9 @@ class MediaWikiApi:
         """
         Initialize MediaWiki API
         """
-        self.api_url = os.getenv("MEDIAWIKI_URL") or "http://wiki.example.com/api.php"
+        self.api_url = (
+            os.getenv("MEDIAWIKI_URL") or "http://wiki.example.com"
+        ) + "/api.php"
         self.username = os.getenv("MEDIAWIKI_USER") or "adminUser"
         self.password = os.getenv("MEDIAWIKI_MDP") or "adminPwd"
         self.session = requests.Session()
@@ -159,12 +161,9 @@ class MediaWikiApi:
                 log("New page created")
             else:
                 log("Page updated")
-            mediawiki_url = (
-                os.getenv("MEDIAWIKI_URL") or "http://wiki.example.com/api.php"
-            )
-            return mediawiki_url.replace(
-                "api.php", f"index.php?title={data["edit"]["title"]}"
-            )
+            return (
+                os.getenv("MEDIAWIKI_URL") or "http://wiki.example.com"
+            ) + f"/index.php?title={data["edit"]["title"]}"
         else:
             log(f"Page creation fail: {data}")
             return "Page not created"
